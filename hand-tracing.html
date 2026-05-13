@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hand Tracing</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        .container {
+            position: relative;
+            width: 640px;
+        }
+
+        #movement_text {
+            margin-bottom: 12px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #1d4ed8;
+        }
+
+        #webcam {
+            transform: rotateY(180deg);
+            width: 640px;
+            height: 480px;
+        }
+
+        #output_canvas {
+            position: absolute;
+            left: 0;
+            top: 48px;
+            transform: rotateY(180deg);
+        }
+    </style>
+</head>
+<body>
+  <div class="container">
+    <div id="movement_text">Beweeg je wijsvinger</div>
+    <video id="webcam" autoplay muted playsinline></video>
+    <canvas id="output_canvas" width="640" height="480"></canvas>
+  </div>
+  <script src="hand-tracing.js"></script>
+
+</body>
+</html>
