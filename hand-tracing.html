@@ -12,6 +12,19 @@
         body {
             font-family: Arial, sans-serif;
             padding: 20px;
+            background-color: #f3f6fb;
+            color: #1f2937;
+        }
+
+        .layout {
+            display: flex;
+            align-items: flex-start;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .camera-panel {
+            flex: 0 1 640px;
         }
 
         .container {
@@ -38,15 +51,96 @@
             top: 48px;
             transform: rotateY(180deg);
         }
+
+        .commands-panel {
+            width: 300px;
+            min-height: 480px;
+            padding: 14px 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 16px;
+            background: #ffffff;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        }
+
+        .commands-panel h2 {
+            margin-top: 0;
+            margin-bottom: 6px;
+            font-size: 21px;
+            color: #0f172a;
+        }
+
+        .commands-panel p {
+            margin-top: 0;
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: #475569;
+        }
+
+        .command-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .command-item {
+            padding: 9px 11px;
+            border-radius: 10px;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+
+        .command-item.active {
+            border-color: #2563eb;
+            background-color: #dbeafe;
+        }
+
+        .command-gesture {
+            display: block;
+            font-weight: bold;
+            font-size: 14px;
+            color: #0f172a;
+            margin-bottom: 2px;
+        }
+
+        .command-result {
+            font-size: 13px;
+            color: #1d4ed8;
+        }
+
+        @media (max-width: 1040px) {
+            .commands-panel {
+                width: 640px;
+                min-height: auto;
+            }
+        }
     </style>
 </head>
 <body>
-  <div class="container">
-    <div id="movement_text">Beweeg je wijsvinger</div>
-    <video id="webcam" autoplay muted playsinline></video>
-    <canvas id="output_canvas" width="640" height="480"></canvas>
-  </div>
-  <script src="hand-tracing.js"></script>
+  <div class="layout">
+    <div class="camera-panel">
+      <div id="movement_text">Beweeg je wijsvinger</div>
+      <div class="container">
+        <video id="webcam" autoplay muted playsinline></video>
+        <canvas id="output_canvas" width="640" height="480"></canvas>
+      </div>
+    </div>
 
+    <aside class="commands-panel">
+      <h2>Hand commands</h2>
+      <p>Overzicht van de gestures die nu in de app herkend worden.</p>
+      <div id="command-list" class="command-list"></div>
+    </aside>
+  </div>
+  
+  <div style="margin-top: 20px;">
+    <button id="view-btn" type="button" style="padding: 10px 20px; margin-right: 10px; cursor: pointer;">📋 Bekijk opgeslagen data</button>
+    <button id="clear-btn" type="button" style="padding: 10px 20px; cursor: pointer; background-color: #ff6b6b; color: white;">🗑️ Wis alle data</button>
+  </div>
+  
+  <div id="data-display" style="margin-top: 20px; padding: 15px; border: 1px solid #ccc; display: none; max-height: 300px; overflow-y: auto; background-color: #f9f9f9;">
+    <h3>Opgeslagen gebaren:</h3>
+    <div id="data-content" style="white-space: pre-wrap; font-family: monospace;"></div>
+  </div>
+  
+  <script src="hand-tracing.js"></script>
 </body>
 </html>

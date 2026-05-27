@@ -2,8 +2,84 @@ const videoElement = document.getElementById('webcam');
 const canvasElement = document.getElementById('output_canvas');
 const canvasCtx = canvasElement.getContext('2d');
 const movementText = document.getElementById('movement_text');
+const commandListElement = document.getElementById('command-list');
 
 let previousIndexTip = null;
+let lastSavedText = '';
+let lastKnownGesture = '';
+let gestureStableCount = 0;
+let isSaving = false;
+const STABLE_GESTURE_FRAMES = 10;
+const gestureCommands = [
+  { gesture: 'index up', result: 'Boven' },
+  { gesture: 'index up + middle up', result: 'peace' },
+  { gesture: 'middle up', result: 'Fuck you!!' },
+  { gesture: 'thumb up + middle up + pinky up', result: 'Call me, baby!!' },
+  { gesture: 'ring up', result: 'Privilgie kerem!' },
+  { gesture: 'pinky up', result: 'Little dick' },
+  { gesture: 'thumb left', result: 'ik' },
+  { gesture: 'index left', result: 'jij' },
+  { gesture: 'middle left', result: 'zij' },
+  { gesture: 'thumb left + ring up', result: 'wij' },
+  { gesture: 'thumb left + pinky left', result: 'jullie' },
+  { gesture: 'thumb right', result: 'Dood' },
+  { gesture: 'index right', result: 'Wil' },
+  { gesture: 'middle right', result: 'heb' },
+  { gesture: 'ring right', result: 'Geef' },
+  { gesture: 'pinky right', result: 'Doe' },
+  { gesture: 'all fingers up', result: 'hallo' },
+  { gesture: 'all fingers down', result: 'Protesten' }
+];
+
+function renderCommandList() {
+  if (!commandListElement) return;
+
+  commandListElement.innerHTML = gestureCommands
+    .map(
+      ({gesture, result}) => `
+        <div class="command-item" data-result="${result}">
+          <span class="command-gesture">${gesture}</span>
+          <span class="command-result">= ${result}</span>
+        </div>
+      `
+    )
+    .join('');
+}
+
+function highlightActiveCommands(results) {
+  if (!commandListElement) return;
+
+  const activeResults = new Set(results.filter(Boolean));
+  const items = commandListElement.querySelectorAll('.command-item');
+  items.forEach((item) => {
+    const isActive = activeResults.has(item.dataset.result);
+    item.classList.toggle('active', isActive);
+  });
+}
+
+async function saveGestureToDatabase(text) {
+  if (text === lastSavedText || !text || isSaving) return;
+  
+  isSaving = true;
+  try {
+    const response = await fetch('/save-gesture', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text: text })
+    });
+    
+    if (response.ok) {
+      lastSavedText = text;
+      console.log('Opgeslagen:', text);
+    }
+  } catch (error) {
+    console.error('Fout bij opslaan:', error);
+  } finally {
+    isSaving = false;
+  }
+}
 
 function detectMovement(currentTip, previousTip) {
   const deltaX = currentTip.x - previousTip.x;
@@ -116,14 +192,20 @@ function detectGesture(landmarks, handLabel) {
   const allFingersUp = thumbUp && indexUp && middleUp && ringUp && pinkyUp;
   const allFingersDown = !thumbUp && !indexUp && !middleUp && !ringUp && !pinkyUp;
 
-  if (handLabel === 'Right') {
+  if (handLabel === 'Right' || handLabel === 'Left') {
     // Thumb up gestures
     if (!thumbUp && indexUp && !middleUp && !ringUp && !pinkyUp) {
       return 'Boven';
     }
+    if (!thumbUp && indexUp && middleUp && !ringUp && !pinkyUp) {
+      return 'peace';
+    }
 
     if (!thumbUp && !indexUp && middleUp && !ringUp && !pinkyUp) {
       return 'Fuck you!!';
+    }
+    if (thumbUp && !indexUp && !middleUp && !ringUp && pinkyUp) {
+      return 'Call me, baby!!';
     }
 
     if (!thumbUp && !indexUp && !middleUp && ringUp && !pinkyUp) {
@@ -222,11 +304,27 @@ function onResults(results) {
         ...detectedWords.filter((word) => word !== 'hallo'),
         ...detectedWords.filter((word) => word === 'hallo')
       ];
-      movementText.textContent = orderedWords.join(' ');
+      highlightActiveCommands(orderedWords);
+      const finalText = orderedWords.join(' ');
+      movementText.textContent = finalText;
+
+      if (finalText === lastKnownGesture) {
+        gestureStableCount += 1;
+      } else {
+        lastKnownGesture = finalText;
+        gestureStableCount = 1;
+      }
+
+      if (gestureStableCount >= STABLE_GESTURE_FRAMES) {
+        saveGestureToDatabase(finalText);
+      }
+    } else {
+      highlightActiveCommands([]);
+      movementText.textContent = 'Geen hand gevonden';
+      lastKnownGesture = '';
+      gestureStableCount = 0;
+      previousIndexTip = null;
     }
-  } else {
-    movementText.textContent = 'Geen hand gevonden';
-    previousIndexTip = null;
   }
   canvasCtx.restore();
 }
@@ -314,4 +412,51 @@ async function sendVideoFrame() {
   requestAnimationFrame(sendVideoFrame);
 }
 
+// Database management functions
+async function viewGesturesData() {
+  try {
+    const response = await fetch('/get-gestures');
+    const data = await response.json();
+    const dataDisplay = document.getElementById('data-display');
+    const dataContent = document.getElementById('data-content');
+    
+    if (data.gestures && data.gestures.length > 0) {
+      dataContent.textContent = data.gestures.join('');
+      dataDisplay.style.display = 'block';
+    } else {
+      dataContent.textContent = 'Geen gegevens opgeslagen';
+      dataDisplay.style.display = 'block';
+    }
+  } catch (error) {
+    console.error('Fout bij ophalen gegevens:', error);
+    alert('Fout bij ophalen gegevens. Zorg ervoor dat de server draait.');
+  }
+}
+
+async function clearGesturesData() {
+  if (!confirm('Weet je zeker dat je ALLE opgeslagen gegevens wilt verwijderen?')) {
+    return;
+  }
+  
+  try {
+    const response = await fetch('/clear-gestures', {
+      method: 'POST'
+    });
+    
+    if (response.ok) {
+      alert('Alle gegevens zijn gewist');
+      lastSavedText = '';
+      document.getElementById('data-display').style.display = 'none';
+    }
+  } catch (error) {
+    console.error('Fout bij wissen gegevens:', error);
+    alert('Fout bij wissen gegevens. Zorg ervoor dat de server draait.');
+  }
+}
+
+// Event listeners voor knoppen
+document.getElementById('view-btn').addEventListener('click', viewGesturesData);
+document.getElementById('clear-btn').addEventListener('click', clearGesturesData);
+
+renderCommandList();
 startCamera();

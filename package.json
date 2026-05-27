@@ -1,0 +1,11 @@
+{
+  "name": "hand-tracing",
+  "version": "1.0.0",
+  "description": "Hand tracking text save server",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "MIT"
+}
